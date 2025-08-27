@@ -44,7 +44,7 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Правильное масштабирование с сохранением пропорций 16:9
+  // Масштабирование: мобильный на весь экран, ПК только по высоте
   function fitToScreen(){
     const vw = window.innerWidth, vh = window.innerHeight, aspect = W/H;
     const params = new URLSearchParams(location.search);
@@ -52,7 +52,7 @@
     
     let cw, ch;
     if (isMobile || params.get('mode') === 'mobile') {
-      // Мобильный: на весь экран с сохранением пропорций
+      // Мобильный: на весь экран
       cw = vw; 
       ch = Math.round(vw / aspect);
       if (ch > vh) { 
@@ -60,19 +60,9 @@
         cw = Math.round(vh * aspect); 
       }
     } else {
-      // ПК: максимально возможный размер с сохранением пропорций 16:9
-      const maxW = Math.round(vw * 0.9);
-      const maxH = Math.round(vh * 0.9);
-      
-      // Пробуем вписать по ширине
-      cw = maxW;
-      ch = Math.round(cw / aspect);
-      
-      // Если не влезает по высоте - вписываем по высоте
-      if (ch > maxH) {
-        ch = maxH;
-        cw = Math.round(ch * aspect);
-      }
+      // ПК: фиксированная ширина, масштабирование только по высоте
+      ch = Math.round(vh * 0.85); // 85% высоты окна
+      cw = Math.round(ch * aspect); // ширина по пропорции 16:9
     }
     
     render.canvas.style.width = cw+'px';
