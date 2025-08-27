@@ -62,7 +62,14 @@ function init(){
   function fitToScreen(){
     const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight, scale:1 };
     const dpr = (window.devicePixelRatio || 1) * (vv.scale || 1);
-    const isMobile = matchMedia('(pointer:coarse)').matches || /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    const params = new URLSearchParams(location.search);
+    const forceDesktop = params.get('mode') === 'desktop';
+    const forceMobile  = params.get('mode') === 'mobile';
+    const isCoarse = matchMedia('(pointer:coarse)').matches;
+    const ua = navigator.userAgent || '';
+    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    const isDesktop = forceDesktop || (!forceMobile && !isCoarse && !isMobileUA);
+    const isMobile = !isDesktop;
 
     let cw, ch; // размеры CSS канваса
     if (isMobile){
