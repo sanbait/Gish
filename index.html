@@ -167,8 +167,16 @@
     for(const rec of [...gum.stickyJoints]){ const a=rec.joint.bodyA.position, b=rec.joint.bodyB.position; const dist=Vector.magnitude(Vector.sub(a,b)); if(now-rec.born>rec.life || dist>70) clearSticky(rec); }
     if(superSticky.on && now>superSticky.until) superSticky.on=false;
 
-    // камера: держим героя по центру
-    const centerY=(render.bounds.min.y+render.bounds.max.y)*0.5; const targetY=gum.core.position.y; const dy=targetY-centerY; render.bounds.min.y+=dy; render.bounds.max.y+=dy;
+    // камера: держим героя по центру Y, масштабируем вид под экран (contain 16:9)
+    const av = Math.max(0.1, window.innerWidth / Math.max(1, window.innerHeight));
+    const viewH = H; // базовая высота в игровых единицах
+    const viewW = viewH * av; // ширина вида из текущего соотношения сторон
+    const targetY = gum.core.position.y;
+    const centerX = W * 0.5;
+    render.bounds.min.x = centerX - viewW * 0.5;
+    render.bounds.max.x = centerX + viewW * 0.5;
+    render.bounds.min.y = targetY - viewH * 0.5;
+    render.bounds.max.y = targetY + viewH * 0.5;
 
     // генерим/чистим модули
     ensureModules();
