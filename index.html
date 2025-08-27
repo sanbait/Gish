@@ -6,14 +6,14 @@
   <title>Жвач v1.1 — mobile + touch</title>
   <style>
     html, body { height:100%; margin:0; background:#fcfcff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial; touch-action: none; overflow:hidden; }
-    #hud { position:fixed; left:12px; top:12px; background:rgba(255,255,255,.9); padding:10px 12px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.08); font-size:14px; line-height:1.35; z-index:10; }
+    #hud { position:fixed; left:calc(env(safe-area-inset-left, 0px) + 12px); top:calc(env(safe-area-inset-top, 0px) + 12px); background:rgba(255,255,255,.9); padding:10px 12px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.08); font-size:14px; line-height:1.35; z-index:10; }
     #hud kbd { background:#f0f3ff; padding:2px 6px; border-radius:6px; border:1px solid #dfe6ff; font-size:12px }
     #hud .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#ffe3ef; border:1px solid #ffc6db; font-weight:600; }
     #hud .small { font-size:12px; opacity:.8 }
     canvas { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); margin:0; outline:none }
     @media (pointer:coarse){ #hud{ font-size:13px } }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
+  <!-- loader добавит Matter из локального vendor или с нескольких CDN -->
 </head>
 <body>
 <div id="hud">
@@ -22,7 +22,26 @@
   Мобайл: левый <b>джойстик</b> — движение, <b>тап по правой половине</b> — прыжок.
 </div>
 <script>
+(function addScriptSequentially(urls, onload){
+  if(!urls.length) return;
+  const url = urls.shift();
+  const s = document.createElement('script'); s.src=url; s.async=true;
+  s.onload = ()=> typeof onload==='function' && onload();
+  s.onerror = ()=> addScriptSequentially(urls, onload);
+  document.head.appendChild(s);
+})([
+  'vendor/matter.min.js',
+  'https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js',
+  'https://unpkg.com/matter-js@0.20.0/build/matter.min.js'
+], init);
+
+function init(){
 (function(){
+  // init будет вызван после загрузки matter
+})();
+</script>
+<script>
+function init(){
   const { Engine, Render, Runner, World, Bodies, Body, Composite, Constraint, Events, Vector } = Matter;
 
   // --- БАЗОВЫЕ НАСТРОЙКИ ---
@@ -43,31 +62,27 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Реальный ресайз без искажений: масштаб "contain" (вписываем 16:9 целиком без обрезки)
+  // Динамический зум камеры: фиксированная мировая высота H, ширина = H * (vw/vh)
   function fitToScreen(){
-    const dpr = window.devicePixelRatio || 1;
-    const vw = Math.max(1, Math.floor(window.innerWidth));
-    const vh = Math.max(1, Math.floor(window.innerHeight));
-    const aspect = W / H;
-    // contain: сначала по ширине, если превышаем высоту — подгоняем по высоте
-    let cw = vw;
-    let ch = Math.round(cw / aspect);
-    if (ch > vh) { ch = vh; cw = Math.round(vh * aspect); }
-    // Центрируем канвас
+    const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight, scale:1 };
+    const vw = Math.max(1, Math.floor(vv.width));
+    const vh = Math.max(1, Math.floor(vv.height));
+    const dpr = (window.devicePixelRatio || 1) * (vv.scale || 1);
+
+    // Размеры CSS канваса равны реальному вьюпорту
     const c = render.canvas; c.style.left = '50%'; c.style.top = '50%'; c.style.transform = 'translate(-50%, -50%)';
-    c.style.width = cw + 'px'; c.style.height = ch + 'px';
-    // Внутренний буфер и параметры отрисовки Matter (единичный масштаб без искажений)
-    const bw = Math.round(cw * dpr);
-    const bh = Math.round(ch * dpr);
-    if (render.canvas.width !== bw) render.canvas.width = bw;
-    if (render.canvas.height !== bh) render.canvas.height = bh;
-    // Сообщаем Matter текущие размеры буфера
-    render.options.width = bw;
-    render.options.height = bh;
-    render.options.pixelRatio = dpr;
+    c.style.width = vw + 'px'; c.style.height = vh + 'px';
+
+    // Буфер канваса под DPR
+    const bw = Math.round(vw * dpr);
+    const bh = Math.round(vh * dpr);
+    if (c.width !== bw) c.width = bw;
+    if (c.height !== bh) c.height = bh;
+    render.options.width = bw; render.options.height = bh; render.options.pixelRatio = dpr;
   }
   window.addEventListener('resize', fitToScreen, {passive:true});
   window.addEventListener('orientationchange', fitToScreen);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitToScreen, {passive:true});
   fitToScreen();
 
   // --- ГРАНИЦЫ ---
@@ -147,7 +162,7 @@
 
   const joy={ active:false, id:null, baseX:W*0.5, baseY:H*0.5, curX:W*0.5, curY:H*0.5, r:78, axisX:0 };
   function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
-  function toCanvasCoords(t){ const rect=render.canvas.getBoundingClientRect(); const x=(t.clientX-rect.left)*(render.options.width/rect.width); const y=(t.clientY-rect.top)*(render.options.height/rect.height); return {x,y}; }
+  function toCanvasCoords(t){ const rect=render.canvas.getBoundingClientRect(); const x=(t.clientX-rect.left)*(render.options.width/rect.width); const y=(t.clientY-rect.top)*(render.options.height/rect.height); return {x,y, rect }; }
   function updateJoy(p){ const dx=p.x-joy.baseX, dy=p.y-joy.baseY; const dist=Math.hypot(dx,dy), max=joy.r, k=dist>max?max/dist:1; joy.curX=joy.baseX+dx*k; joy.curY=joy.baseY+dy*k; joy.axisX=clamp((joy.curX-joy.baseX)/max,-1,1); }
   function endJoy(){ joy.active=false; joy.id=null; joy.curX=joy.baseX; joy.curY=joy.baseY; joy.axisX=0; }
   const cvs=()=>render.canvas;
@@ -155,7 +170,7 @@
   window.addEventListener('resize', centerJoystickIfIdle, {passive:true});
   window.addEventListener('orientationchange', centerJoystickIfIdle);
   centerJoystickIfIdle();
-  cvs().addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toCanvasCoords(t); const onLeft=(p.x<render.options.width*0.5); if(!joy.active && onLeft){ joy.active=true; joy.id=t.identifier; updateJoy(p);} else { tryJump(); } } },{passive:false});
+  cvs().addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toCanvasCoords(t); const onLeft=(t.clientX<p.rect.left + p.rect.width*0.5); if(!joy.active && onLeft){ joy.active=true; joy.id=t.identifier; updateJoy(p);} else { tryJump(); } } },{passive:false});
   cvs().addEventListener('touchmove',e=>{ e.preventDefault(); for(const t of e.changedTouches){ if(joy.active && t.identifier===joy.id) updateJoy(toCanvasCoords(t)); } },{passive:false});
   function endTouch(e){ e.preventDefault(); for(const t of e.changedTouches){ if(joy.active && t.identifier===joy.id) endJoy(); } }
   cvs().addEventListener('touchend', endTouch, {passive:false});
@@ -167,10 +182,11 @@
     for(const rec of [...gum.stickyJoints]){ const a=rec.joint.bodyA.position, b=rec.joint.bodyB.position; const dist=Vector.magnitude(Vector.sub(a,b)); if(now-rec.born>rec.life || dist>70) clearSticky(rec); }
     if(superSticky.on && now>superSticky.until) superSticky.on=false;
 
-    // камера: держим героя по центру Y, масштабируем вид под экран (contain 16:9)
-    const av = Math.max(0.1, window.innerWidth / Math.max(1, window.innerHeight));
-    const viewH = H; // базовая высота в игровых единицах
-    const viewW = viewH * av; // ширина вида из текущего соотношения сторон
+    // Камера: фиксируем высоту мира = H, ширина = H * (vw/vh), центр на герое
+    const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight };
+    const av = Math.max(0.1, vv.width / Math.max(1, vv.height));
+    const viewH = H;
+    const viewW = viewH * av;
     const targetY = gum.core.position.y;
     const centerX = W * 0.5;
     render.bounds.min.x = centerX - viewW * 0.5;
