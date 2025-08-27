@@ -130,13 +130,17 @@
   window.addEventListener('keydown',e=>{ if(['ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault(); if(e.code==='ArrowLeft')keys.left=true; if(e.code==='ArrowRight')keys.right=true; if(e.code==='ArrowUp')tryJump(); if(e.code==='KeyS')pulseSuperSticky(); if(e.code==='KeyR')reset(); });
   window.addEventListener('keyup',e=>{ if(['ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault(); if(e.code==='ArrowLeft')keys.left=false; if(e.code==='ArrowRight')keys.right=false; });
 
-  const joy={ active:false, id:null, baseX:90, baseY:H-90, curX:90, curY:H-90, r:70, axisX:0 };
+  const joy={ active:false, id:null, baseX:W*0.5, baseY:H*0.5, curX:W*0.5, curY:H*0.5, r:78, axisX:0 };
   function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
   function toCanvasCoords(t){ const rect=render.canvas.getBoundingClientRect(); const x=(t.clientX-rect.left)*(render.options.width/rect.width); const y=(t.clientY-rect.top)*(render.options.height/rect.height); return {x,y}; }
   function updateJoy(p){ const dx=p.x-joy.baseX, dy=p.y-joy.baseY; const dist=Math.hypot(dx,dy), max=joy.r, k=dist>max?max/dist:1; joy.curX=joy.baseX+dx*k; joy.curY=joy.baseY+dy*k; joy.axisX=clamp((joy.curX-joy.baseX)/max,-1,1); }
   function endJoy(){ joy.active=false; joy.id=null; joy.curX=joy.baseX; joy.curY=joy.baseY; joy.axisX=0; }
   const cvs=()=>render.canvas;
-  cvs().addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toCanvasCoords(t); const onLeftBottom=(p.x<render.options.width*0.55 && p.y>render.options.height*0.45); if(!joy.active && onLeftBottom){ joy.active=true; joy.id=t.identifier; updateJoy(p);} else { tryJump(); } } },{passive:false});
+  function centerJoystickIfIdle(){ if(!joy.active){ joy.baseX=render.options.width*0.5; joy.baseY=render.options.height*0.5; endJoy(); } }
+  window.addEventListener('resize', centerJoystickIfIdle, {passive:true});
+  window.addEventListener('orientationchange', centerJoystickIfIdle);
+  centerJoystickIfIdle();
+  cvs().addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toCanvasCoords(t); const onLeft=(p.x<render.options.width*0.5); if(!joy.active && onLeft){ joy.active=true; joy.id=t.identifier; updateJoy(p);} else { tryJump(); } } },{passive:false});
   cvs().addEventListener('touchmove',e=>{ e.preventDefault(); for(const t of e.changedTouches){ if(joy.active && t.identifier===joy.id) updateJoy(toCanvasCoords(t)); } },{passive:false});
   function endTouch(e){ e.preventDefault(); for(const t of e.changedTouches){ if(joy.active && t.identifier===joy.id) endJoy(); } }
   cvs().addEventListener('touchend', endTouch, {passive:false});
