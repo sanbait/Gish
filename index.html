@@ -21,22 +21,9 @@
   Десктоп: <kbd>←</kbd><kbd>→</kbd> движение, <kbd>↑</kbd> прыжок, <kbd>S</kbd> супер‑липкость, <kbd>R</kbd> рестарт.<br/>
   Мобайл: левый <b>джойстик</b> — движение, <b>тап по правой половине</b> — прыжок.
 </div>
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
 <script>
-(function addScriptSequentially(urls, onload){
-  if(!urls.length) return;
-  const url = urls.shift();
-  const s = document.createElement('script'); s.src=url; s.async=true;
-  s.onload = ()=> typeof onload==='function' && onload();
-  s.onerror = ()=> addScriptSequentially(urls, onload);
-  document.head.appendChild(s);
-})([
-  'vendor/matter.min.js',
-  'https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js',
-  'https://unpkg.com/matter-js@0.20.0/build/matter.min.js'
-], ()=>{ if (window.init) window.init(); });
-</script>
-<script>
-function init(){
+(function(){
   const { Engine, Render, Runner, World, Bodies, Body, Composite, Constraint, Events, Vector } = Matter;
 
   // --- БАЗОВЫЕ НАСТРОЙКИ ---
