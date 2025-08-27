@@ -34,11 +34,6 @@
   'https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js',
   'https://unpkg.com/matter-js@0.20.0/build/matter.min.js'
 ], init);
-
-function init(){
-(function(){
-  // init будет вызван после загрузки matter
-})();
 </script>
 <script>
 function init(){
@@ -62,20 +57,36 @@ function init(){
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Динамический зум камеры: фиксированная мировая высота H, ширина = H * (vw/vh)
+  // Динамический зум камеры: фиксированная мировая высота H, ширина = H * (viewportAspect)
+  let cssViewportW = 0, cssViewportH = 0; // фактический размер области игры на экране (CSS-пиксели)
   function fitToScreen(){
     const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight, scale:1 };
-    const vw = Math.max(1, Math.floor(vv.width));
-    const vh = Math.max(1, Math.floor(vv.height));
     const dpr = (window.devicePixelRatio || 1) * (vv.scale || 1);
+    const isMobile = matchMedia('(pointer:coarse)').matches || /Mobi|Android|iPhone/i.test(navigator.userAgent);
 
-    // Размеры CSS канваса равны реальному вьюпорту
+    let cw, ch; // размеры CSS канваса
+    if (isMobile){
+      cw = Math.max(1, Math.floor(vv.width));
+      ch = Math.max(1, Math.floor(vv.height));
+    } else {
+      // Эмуляция «экрана телефона» по центру на ПК (портретный аспект)
+      const phoneAspect = 9/19.5; // ширина/высота
+      const margin = 24; // поля вокруг «телефона»
+      const maxW = Math.max(1, Math.floor(window.innerWidth - margin*2));
+      const maxH = Math.max(1, Math.floor(window.innerHeight - margin*2));
+      ch = Math.min(maxH, Math.round(maxW / phoneAspect));
+      cw = Math.min(maxW, Math.round(ch * phoneAspect));
+    }
+
+    cssViewportW = cw; cssViewportH = ch;
+
+    // Применяем CSS-рамку и центрирование
     const c = render.canvas; c.style.left = '50%'; c.style.top = '50%'; c.style.transform = 'translate(-50%, -50%)';
-    c.style.width = vw + 'px'; c.style.height = vh + 'px';
+    c.style.width = cw + 'px'; c.style.height = ch + 'px';
 
     // Буфер канваса под DPR
-    const bw = Math.round(vw * dpr);
-    const bh = Math.round(vh * dpr);
+    const bw = Math.round(cw * dpr);
+    const bh = Math.round(ch * dpr);
     if (c.width !== bw) c.width = bw;
     if (c.height !== bh) c.height = bh;
     render.options.width = bw; render.options.height = bh; render.options.pixelRatio = dpr;
@@ -183,8 +194,7 @@ function init(){
     if(superSticky.on && now>superSticky.until) superSticky.on=false;
 
     // Камера: фиксируем высоту мира = H, ширина = H * (vw/vh), центр на герое
-    const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight };
-    const av = Math.max(0.1, vv.width / Math.max(1, vv.height));
+    const av = Math.max(0.1, cssViewportW / Math.max(1, cssViewportH));
     const viewH = H;
     const viewW = viewH * av;
     const targetY = gum.core.position.y;
