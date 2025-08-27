@@ -43,12 +43,28 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Принудительно растягиваем канвас под весь вьюпорт (px)
+  // Реальный ресайз без искажений: масштаб "cover" под вьюпорт, сохраняем соотношение 16:9
   function fitToScreen(){
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    render.canvas.style.width = vw + 'px';
-    render.canvas.style.height = vh + 'px';
+    const dpr = window.devicePixelRatio || 1;
+    const vw = Math.max(1, Math.floor(window.innerWidth));
+    const vh = Math.max(1, Math.floor(window.innerHeight));
+    const aspect = W / H;
+    // cover: сначала по ширине, затем при нехватке высоты — по высоте
+    let cw = vw;
+    let ch = Math.round(cw / aspect);
+    if (ch < vh) { ch = vh; cw = Math.round(vh * aspect); }
+    // Центрируем канвас
+    const c = render.canvas; c.style.left = '50%'; c.style.top = '50%'; c.style.transform = 'translate(-50%, -50%)';
+    c.style.width = cw + 'px'; c.style.height = ch + 'px';
+    // Внутренний буфер и параметры отрисовки Matter (единичный масштаб без искажений)
+    const bw = Math.round(cw * dpr);
+    const bh = Math.round(ch * dpr);
+    if (render.canvas.width !== bw) render.canvas.width = bw;
+    if (render.canvas.height !== bh) render.canvas.height = bh;
+    // Сообщаем Matter текущие размеры буфера
+    render.options.width = bw;
+    render.options.height = bh;
+    render.options.pixelRatio = dpr;
   }
   window.addEventListener('resize', fitToScreen, {passive:true});
   window.addEventListener('orientationchange', fitToScreen);
