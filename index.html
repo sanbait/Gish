@@ -44,19 +44,26 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Динамический рендер под размер экрана с сохранением пропорций
+  // Окно мобильных пропорций, элементы нормального размера
   function fitToScreen(){
-    const vw = window.innerWidth, vh = window.innerHeight, aspect = W/H;
-    let cw = vw, ch = Math.round(vw/aspect);
-    if (ch > vh) { ch = vh; cw = Math.round(vh*aspect); }
+    const vh = window.innerHeight;
+    const mobileAspect = 9/16; // пропорции мобильного
     
-    // Обновляем размеры канваса И рендера
-    render.canvas.width = cw;
-    render.canvas.height = ch;
-    render.canvas.style.width = cw+'px';
-    render.canvas.style.height = ch+'px';
-    render.options.width = cw;
-    render.options.height = ch;
+    // Размеры окна игры (мобильные пропорции)
+    const gameHeight = Math.min(vh * 0.9, 800); // максимум 800px высоты
+    const gameWidth = gameHeight * mobileAspect;
+    
+    // Канвас остается 960x540 (элементы нормального размера)
+    render.canvas.width = W;
+    render.canvas.height = H;
+    
+    // CSS растягивает до нужного размера окна
+    render.canvas.style.width = gameWidth + 'px';
+    render.canvas.style.height = gameHeight + 'px';
+    
+    // Рендер остается оригинальным
+    render.options.width = W;
+    render.options.height = H;
   }
   window.addEventListener('resize', fitToScreen, {passive:true});
   window.addEventListener('orientationchange', fitToScreen);
