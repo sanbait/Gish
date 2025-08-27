@@ -57,46 +57,27 @@ function init(){
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Динамический зум камеры: фиксированная мировая высота H, ширина = H * (viewportAspect)
-  let cssViewportW = 0, cssViewportH = 0; // фактический размер области игры на экране (CSS-пиксели)
+  // Простое CSS-масштабирование под экран
   function fitToScreen(){
-    const vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight, scale:1 };
-    const dpr = (window.devicePixelRatio || 1) * (vv.scale || 1);
+    const vw = window.innerWidth, vh = window.innerHeight, aspect = W/H;
     const params = new URLSearchParams(location.search);
-    const forceDesktop = params.get('mode') === 'desktop';
-    const forceMobile  = params.get('mode') === 'mobile';
-    const isCoarse = matchMedia('(pointer:coarse)').matches;
-    const ua = navigator.userAgent || '';
-    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-    const isDesktop = forceDesktop || (!forceMobile && !isCoarse && !isMobileUA);
-    const isMobile = !isDesktop;
-
-    let cw, ch; // размеры CSS канваса
-    if (isMobile){
-      cw = Math.max(1, Math.floor(vv.width));
-      ch = Math.max(1, Math.floor(vv.height));
+    const isMobile = matchMedia('(pointer:coarse)').matches || /Mobi|Android|iPhone/i.test(navigator.userAgent) || params.get('mode') === 'mobile';
+    
+    let cw, ch;
+    if (isMobile || params.get('mode') === 'mobile') {
+      // Мобильный: на весь экран
+      cw = vw; ch = Math.round(vw/aspect);
+      if (ch > vh) { ch = vh; cw = Math.round(vh*aspect); }
     } else {
-      // Эмуляция «экрана телефона» по центру на ПК (портретный аспект)
-      const phoneAspect = 9/19.5; // ширина/высота
-      const margin = 24; // поля вокруг «телефона»
-      const maxW = Math.max(1, Math.floor(window.innerWidth - margin*2));
-      const maxH = Math.max(1, Math.floor(window.innerHeight - margin*2));
-      ch = Math.min(maxH, Math.round(maxW / phoneAspect));
-      cw = Math.min(maxW, Math.round(ch * phoneAspect));
+      // ПК: окно телефона по центру
+      const phoneAspect = 9/20;
+      const maxH = vh - 48;
+      ch = Math.min(maxH, 700);
+      cw = Math.round(ch * phoneAspect);
     }
-
-    cssViewportW = cw; cssViewportH = ch;
-
-    // Применяем CSS-рамку и центрирование
-    const c = render.canvas; c.style.left = '50%'; c.style.top = '50%'; c.style.transform = 'translate(-50%, -50%)';
-    c.style.width = cw + 'px'; c.style.height = ch + 'px';
-
-    // Буфер канваса под DPR
-    const bw = Math.round(cw * dpr);
-    const bh = Math.round(ch * dpr);
-    if (c.width !== bw) c.width = bw;
-    if (c.height !== bh) c.height = bh;
-    render.options.width = bw; render.options.height = bh; render.options.pixelRatio = dpr;
+    
+    render.canvas.style.width = cw+'px';
+    render.canvas.style.height = ch+'px';
   }
   window.addEventListener('resize', fitToScreen, {passive:true});
   window.addEventListener('orientationchange', fitToScreen);
@@ -178,17 +159,17 @@ function init(){
   window.addEventListener('keydown',e=>{ if(['ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault(); if(e.code==='ArrowLeft')keys.left=true; if(e.code==='ArrowRight')keys.right=true; if(e.code==='ArrowUp')tryJump(); if(e.code==='KeyS')pulseSuperSticky(); if(e.code==='KeyR')reset(); });
   window.addEventListener('keyup',e=>{ if(['ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault(); if(e.code==='ArrowLeft')keys.left=false; if(e.code==='ArrowRight')keys.right=false; });
 
-  const joy={ active:false, id:null, baseX:W*0.5, baseY:H*0.5, curX:W*0.5, curY:H*0.5, r:78, axisX:0 };
+  const joy={ active:false, id:null, baseX:90, baseY:H-90, curX:90, curY:H-90, r:70, axisX:0 };
   function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
   function toCanvasCoords(t){ const rect=render.canvas.getBoundingClientRect(); const x=(t.clientX-rect.left)*(render.options.width/rect.width); const y=(t.clientY-rect.top)*(render.options.height/rect.height); return {x,y, rect }; }
   function updateJoy(p){ const dx=p.x-joy.baseX, dy=p.y-joy.baseY; const dist=Math.hypot(dx,dy), max=joy.r, k=dist>max?max/dist:1; joy.curX=joy.baseX+dx*k; joy.curY=joy.baseY+dy*k; joy.axisX=clamp((joy.curX-joy.baseX)/max,-1,1); }
   function endJoy(){ joy.active=false; joy.id=null; joy.curX=joy.baseX; joy.curY=joy.baseY; joy.axisX=0; }
   const cvs=()=>render.canvas;
-  function centerJoystickIfIdle(){ if(!joy.active){ joy.baseX=render.options.width*0.5; joy.baseY=render.options.height*0.5; endJoy(); } }
+  function centerJoystickIfIdle(){ /* джойстик в фиксированной позиции */ }
   window.addEventListener('resize', centerJoystickIfIdle, {passive:true});
   window.addEventListener('orientationchange', centerJoystickIfIdle);
   centerJoystickIfIdle();
-  cvs().addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toCanvasCoords(t); const onLeft=(t.clientX<p.rect.left + p.rect.width*0.5); if(!joy.active && onLeft){ joy.active=true; joy.id=t.identifier; updateJoy(p);} else { tryJump(); } } },{passive:false});
+  cvs().addEventListener('touchstart',e=>{ e.preventDefault(); for(const t of e.changedTouches){ const p=toCanvasCoords(t); const onLeftBottom=(p.x<render.options.width*0.55 && p.y>render.options.height*0.45); if(!joy.active && onLeftBottom){ joy.active=true; joy.id=t.identifier; updateJoy(p);} else { tryJump(); } } },{passive:false});
   cvs().addEventListener('touchmove',e=>{ e.preventDefault(); for(const t of e.changedTouches){ if(joy.active && t.identifier===joy.id) updateJoy(toCanvasCoords(t)); } },{passive:false});
   function endTouch(e){ e.preventDefault(); for(const t of e.changedTouches){ if(joy.active && t.identifier===joy.id) endJoy(); } }
   cvs().addEventListener('touchend', endTouch, {passive:false});
@@ -200,16 +181,12 @@ function init(){
     for(const rec of [...gum.stickyJoints]){ const a=rec.joint.bodyA.position, b=rec.joint.bodyB.position; const dist=Vector.magnitude(Vector.sub(a,b)); if(now-rec.born>rec.life || dist>70) clearSticky(rec); }
     if(superSticky.on && now>superSticky.until) superSticky.on=false;
 
-    // Камера: фиксируем высоту мира = H, ширина = H * (vw/vh), центр на герое
-    const av = Math.max(0.1, cssViewportW / Math.max(1, cssViewportH));
-    const viewH = H;
-    const viewW = viewH * av;
+    // Простая камера: следуем за героем по Y, bounds остаются фиксированными 16:9
+    const centerY = (render.bounds.min.y + render.bounds.max.y) * 0.5;
     const targetY = gum.core.position.y;
-    const centerX = W * 0.5;
-    render.bounds.min.x = centerX - viewW * 0.5;
-    render.bounds.max.x = centerX + viewW * 0.5;
-    render.bounds.min.y = targetY - viewH * 0.5;
-    render.bounds.max.y = targetY + viewH * 0.5;
+    const dy = targetY - centerY;
+    render.bounds.min.y += dy;
+    render.bounds.max.y += dy;
 
     // генерим/чистим модули
     ensureModules();
