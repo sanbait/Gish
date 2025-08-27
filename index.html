@@ -33,7 +33,7 @@
   'vendor/matter.min.js',
   'https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js',
   'https://unpkg.com/matter-js@0.20.0/build/matter.min.js'
-], init);
+], ()=>{ if (window.init) window.init(); });
 </script>
 <script>
 function init(){
