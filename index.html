@@ -10,7 +10,7 @@
     #hud kbd { background:#f0f3ff; padding:2px 6px; border-radius:6px; border:1px solid #dfe6ff; font-size:12px }
     #hud .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#ffe3ef; border:1px solid #ffc6db; font-weight:600; }
     #hud .small { font-size:12px; opacity:.8 }
-    canvas { position:fixed; left:0; top:0; width:100vw; height:100vh; margin:0; outline:none }
+    canvas { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); margin:0; outline:none }
     @media (pointer:coarse){ #hud{ font-size:13px } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
@@ -43,16 +43,16 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Реальный ресайз без искажений: масштаб "cover" под вьюпорт, сохраняем соотношение 16:9
+  // Реальный ресайз без искажений: масштаб "contain" (вписываем 16:9 целиком без обрезки)
   function fitToScreen(){
     const dpr = window.devicePixelRatio || 1;
     const vw = Math.max(1, Math.floor(window.innerWidth));
     const vh = Math.max(1, Math.floor(window.innerHeight));
     const aspect = W / H;
-    // cover: сначала по ширине, затем при нехватке высоты — по высоте
+    // contain: сначала по ширине, если превышаем высоту — подгоняем по высоте
     let cw = vw;
     let ch = Math.round(cw / aspect);
-    if (ch < vh) { ch = vh; cw = Math.round(vh * aspect); }
+    if (ch > vh) { ch = vh; cw = Math.round(vh * aspect); }
     // Центрируем канвас
     const c = render.canvas; c.style.left = '50%'; c.style.top = '50%'; c.style.transform = 'translate(-50%, -50%)';
     c.style.width = cw + 'px'; c.style.height = ch + 'px';
