@@ -1,0 +1,24 @@
+
+# === Быстрый пуш в твой репозиторий https://github.com/sanbait/GAME ===
+# Требования: установлен git и есть доступ к репозиторию (HTTPS или SSH).
+
+# 1) Клонируем репозиторий (вариант HTTPS — самый простой)
+git clone https://github.com/sanbait/GAME.git
+cd GAME
+
+# 2) Кладём файлы из архива в корень репозитория (если распаковал рядом с папкой GAME):
+# (На Windows можно просто перетащить мышкой с заменой. В bash — так:)
+cp -f ../index.html ./
+mkdir -p .github/workflows
+cp -f ../.github/workflows/deploy.yml .github/workflows/
+cp -f ../README.md ./
+
+# 3) Коммитим и пушим в основную ветку (обычно main)
+git add -A
+git commit -m "Deploy: Жвач v1.1 (mobile+touch) + Pages workflow"
+git branch -M main
+git push -u origin main
+
+# 4) В репозитории GitHub зайди в Settings → Pages → Build and deployment и выбери "GitHub Actions".
+# После пуша дождись зелёного workflow в Actions. Сайт будет доступен по адресу:
+# https://sanbait.github.io/GAME/
