@@ -44,10 +44,13 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // ПРОСТО НА ВЕСЬ ЭКРАН ВЕЗДЕ
+  // Канвас на весь экран, рендер остается 960x540
   function fitToScreen(){
-    render.canvas.style.width = window.innerWidth + 'px';
-    render.canvas.style.height = window.innerHeight + 'px';
+    const vw = window.innerWidth, vh = window.innerHeight, aspect = W/H;
+    let cw = vw, ch = Math.round(vw/aspect);
+    if (ch > vh) { ch = vh; cw = Math.round(vh*aspect); }
+    render.canvas.style.width = cw+'px';
+    render.canvas.style.height = ch+'px';
   }
   window.addEventListener('resize', fitToScreen, {passive:true});
   window.addEventListener('orientationchange', fitToScreen);
