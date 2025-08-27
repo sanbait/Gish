@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Жвач v1.1 — mobile + touch</title>
   <style>
     html, body { height:100%; margin:0; background:#fcfcff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial; touch-action: none; overflow:hidden; }
@@ -10,7 +10,7 @@
     #hud kbd { background:#f0f3ff; padding:2px 6px; border-radius:6px; border:1px solid #dfe6ff; font-size:12px }
     #hud .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#ffe3ef; border:1px solid #ffc6db; font-weight:600; }
     #hud .small { font-size:12px; opacity:.8 }
-    canvas { display:block; margin:0 auto; outline:none }
+    canvas { position:fixed; left:0; top:0; width:100vw; height:100vh; margin:0; outline:none }
     @media (pointer:coarse){ #hud{ font-size:13px } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
@@ -34,7 +34,7 @@
   const render = Render.create({
     element: document.body,
     engine,
-    options: { width: W, height: H, background:'#fbfbff', wireframes:false, pixelRatio:1, hasBounds:true }
+    options: { width: W, height: H, background:'#fbfbff', wireframes:false, pixelRatio: (window.devicePixelRatio||1), hasBounds:true }
   });
   Render.run(render);
   Runner.run(Runner.create({ isFixed:true, delta:1000/60 }), engine);
@@ -43,13 +43,12 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // подгоняем канвас под экран (CSS масштаб)
+  // Принудительно растягиваем канвас под весь вьюпорт (px)
   function fitToScreen(){
-    const vw = window.innerWidth, vh = window.innerHeight, aspect = W/H;
-    let cw = vw, ch = Math.round(vw/aspect);
-    if (ch > vh) { ch = vh; cw = Math.round(vh*aspect); }
-    render.canvas.style.width = cw+"px";
-    render.canvas.style.height = ch+"px";
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    render.canvas.style.width = vw + 'px';
+    render.canvas.style.height = vh + 'px';
   }
   window.addEventListener('resize', fitToScreen, {passive:true});
   window.addEventListener('orientationchange', fitToScreen);
