@@ -44,29 +44,10 @@
   render.bounds.min = { x:0, y:0 };
   render.bounds.max = { x:W, y:H };
 
-  // Масштабирование: мобильный на весь экран, ПК только по высоте
+  // ПРОСТО НА ВЕСЬ ЭКРАН ВЕЗДЕ
   function fitToScreen(){
-    const vw = window.innerWidth, vh = window.innerHeight, aspect = W/H;
-    const params = new URLSearchParams(location.search);
-    const isMobile = matchMedia('(pointer:coarse)').matches || /Mobi|Android|iPhone/i.test(navigator.userAgent) || params.get('mode') === 'mobile';
-    
-    let cw, ch;
-    if (isMobile || params.get('mode') === 'mobile') {
-      // Мобильный: на весь экран
-      cw = vw; 
-      ch = Math.round(vw / aspect);
-      if (ch > vh) { 
-        ch = vh; 
-        cw = Math.round(vh * aspect); 
-      }
-    } else {
-      // ПК: фиксированная ширина, масштабирование только по высоте
-      ch = Math.round(vh * 0.85); // 85% высоты окна
-      cw = Math.round(ch * aspect); // ширина по пропорции 16:9
-    }
-    
-    render.canvas.style.width = cw+'px';
-    render.canvas.style.height = ch+'px';
+    render.canvas.style.width = window.innerWidth + 'px';
+    render.canvas.style.height = window.innerHeight + 'px';
   }
   window.addEventListener('resize', fitToScreen, {passive:true});
   window.addEventListener('orientationchange', fitToScreen);
