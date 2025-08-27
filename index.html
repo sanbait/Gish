@@ -32,16 +32,16 @@
   engine.constraintIterations = 2;
   engine.gravity.y = 1.1;
 
-  // Создаем рендер на весь экран
+  // Создаем рендер (размеры будут установлены в resizeCanvas)
   const render = Render.create({
     element: document.body,
     engine,
     options: { 
-      width: window.innerWidth, 
-      height: window.innerHeight, 
+      width: 800, 
+      height: 600, 
       background:'#fbfbff', 
       wireframes:false, 
-      pixelRatio: window.devicePixelRatio || 1,
+      pixelRatio: 1,
       hasBounds: true 
     }
   });
